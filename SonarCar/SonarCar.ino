@@ -1,10 +1,13 @@
 #include <Servo.h>
+#include <SoftwareSerial.h>
 #include "TimerOne.h"
 #include "Wheels.h"
 
+// constants
 #define SPEED 255
 #define LEFT 0
 #define RIGHT 180
+#define FRONT 90
 // piny dla sonaru (HC-SR04)
 #define TRIG A4
 #define ECHO A5
@@ -12,81 +15,78 @@
 // pin kontroli serwo (musi być PWM)
 #define SERVO 3
 
-
-
+SoftwareSerial BTSerial(10, 9);
 Servo serwo;
 Wheels w;
-volatile int counter = 0;
+volatile long counter = 0;
 volatile int turns = 0;
+short distanceLeft = 0;
+short distanceRight = 0;
 
 void setup() {
   pinMode(TRIG, OUTPUT);    // TRIG startuje sonar
   pinMode(ECHO, INPUT);     // ECHO odbiera powracający impuls
-  w.attach(8,2,6,5,4,11);
+  w.attach(8, 2, 6, 5, 4, 11); //8 Green RF, 11 Blue RB, 4 Yellow RS, 5 Purple LF, 6 Gray LB, 12 White LS
+  //pRF, pRB, pRS, pLF, pLB, pLS
   Serial.begin(9600);
-
   serwo.attach(SERVO);
 
-/* rozejrzyj się w zakresie od 0 stopni (patrz na jedną burtę)
- *  do 180 stopni (patrz na prawą burtę). Wydrukuj na konsoli
- *  kierunek patrzenia i najbliżej widziany obiekt (pojedynczy pomiar)
- */
-//  for(byte angle = 0; angle < 180; angle+= 20) {
-//    lookAndTellDistance(angle);
-//    delay(500);
-//  }
-  
-  w.goForward(130);
-  w.turnLeft(90);
-  w.setSpeed(200);
+  w.setSpeed(150);
+  w.forward();
 }
-
-void loop() { 
-  if (turns < 2){
-    w.forward();
-    checkPath();
-    delay(200);
-  } else {
-    w.setSpeed(200);
-    while(counter > w.cntr){
-      w.forward();
-    }
-    w.stop();
-    w.turnRight(90);
-    w.goForward(200);
-    delay(100000);
-  }
-}
-
-void checkPath(){
-  int distanceLeft = lookAndTellDistance(LEFT);
-  #sendSignal
-  if(lookAndTellDistance(80) <= 70 || lookAndTellDistance(100) <= 70){
-    w.stop();
-  }
-  int distanceRight = lookAndTellDistance(RIGHT);
-  #sendSignal
-}
-
+/*
+   Returns the distance in mm at angle angle
+*/
 int lookAndTellDistance(byte angle) {
-  
-  unsigned long tot;      // czas powrotu (time-of-travel)
+  unsigned long tot;
   unsigned int distance;
 
   serwo.write(angle);
-  delay(100);  
-/* uruchamia sonar (puls 10 ms na `TRIGGER')
- * oczekuje na powrotny sygnał i aktualizuje
- */
+  delay(100);
+
   digitalWrite(TRIG, HIGH);
   delay(10);
   digitalWrite(TRIG, LOW);
   tot = pulseIn(ECHO, HIGH);
-  
 
-/* prędkość dźwięku = 340m/s => 1 cm w 29 mikrosekund
- * droga tam i z powrotem, zatem:
- */
-  distance = tot/58;
-  return distance;
+  distance = 100 * tot / 58;
+  return distance; //mm
+}
+
+void loop() {
+  //  digitalWrite(12, LOW);
+  //  digitalWrite(5, LOW);
+  //  digitalWrite(6, HIGH);
+  //  digitalWrite(5, HIGH);
+  //  delay(1000);
+  //  digitalWrite(6, LOW);
+  //  digitalWrite(5, LOW);
+  //  digitalWrite(6, HIGH);
+  //  digitalWrite(12, HIGH);
+  //  delay(5000);
+  //  digitalWrite(6, LOW);
+  //  digitalWrite(12, LOW);
+  //  digitalWrite(12, HIGH);
+  //  digitalWrite(5, HIGH);
+  //  delay(15000);
+  if (BTSerial.available()) {
+    distanceLeft = lookAndTellDistance(LEFT);
+    BTSerial.write("<L;" + distanceLeft + ';' + w.cntr + '>');
+    if (lookAndTellDistance(80) <= 70 || lookAndTellDistance(100) <= 70) {
+      w.stop();
+      exit(0);
+    }
+
+    distanceRight = lookAndTellDistance(RIGHT);
+    BTSerial.write("<R;" + distanceRight + ';' + w.cntr + '>');
+    if (lookAndTellDistance(80) <= 70 || lookAndTellDistance(100) <= 70) {
+      w.stop();
+      exit(0);
+    }
+  }
+  else {
+    w.stop();
+    delay(500);
+    w.forward();
+  }
 }
