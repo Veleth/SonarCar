@@ -1,0 +1,224 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sonar</title>
+  <link rel="stylesheet" href="https://stackedit.io/style.css" />
+</head>
+
+<body class="stackedit">
+  <div class="stackedit__html"><h1 id="sonar">Sonar</h1>
+<h2 id="elementy-projektu">1. Elementy projektu</h2>
+<p>Software projektu został napisany w języku C++ (sterowanie samochodem) i Python (generowanie obrazu). Biblioteki używane w projekcie C++ to <code>Servo.h</code>,  <code>SoftwareSerial.h</code>,  <code>TimerOne.h</code> i <code>Wheels.h</code>.</p>
+<p>Pliki projektu:<br>
+<a href="./SonarCar.ino">SonarCar.ino</a><br>
+<a href="./Wheels.cpp">Wheels.cpp</a><br>
+<a href="./Wheels.h">Wheels.h</a><br>
+<a href="./drawing.py">drawing.py</a></p>
+<p>Hardware projektu obejmuje (poza standardowym setupem używanym na laboratoriach) moduł HC05 służący do komunikacji Bluetooth.</p>
+<h2 id="schemat-podłączeń">2. Schemat podłączeń</h2>
+
+<table>
+<thead>
+<tr>
+<th>Moduł</th>
+<th>Wyjście</th>
+<th align="left">Pin na arduino</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Silniki (Prawe)</td>
+<td>Napęd</td>
+<td align="left">4</td>
+</tr>
+<tr>
+<td>Silniki (Prawe)</td>
+<td>Napęd (Przód)</td>
+<td align="left">8</td>
+</tr>
+<tr>
+<td>Silniki (Prawe)</td>
+<td>Napęd (Tył)</td>
+<td align="left">13</td>
+</tr>
+<tr>
+<td>Silniki (Lewe)</td>
+<td>Napęd</td>
+<td align="left">12</td>
+</tr>
+<tr>
+<td>Silniki (Lewe)</td>
+<td>Napęd (Przód)</td>
+<td align="left">6</td>
+</tr>
+<tr>
+<td>Silniki (Lewe)</td>
+<td>Napęd (Tył)</td>
+<td align="left">7</td>
+</tr>
+<tr>
+<td>Serwo</td>
+<td>Napęd</td>
+<td align="left">5 (PWM)</td>
+</tr>
+<tr>
+<td>Sonar</td>
+<td>Echo</td>
+<td align="left">A4</td>
+</tr>
+<tr>
+<td>Sonar</td>
+<td>Trig</td>
+<td align="left">A5</td>
+</tr>
+<tr>
+<td>HC05 (BT)</td>
+<td>RXD</td>
+<td align="left">9</td>
+</tr>
+<tr>
+<td>HC05 (BT)</td>
+<td>TXD</td>
+<td align="left">10</td>
+</tr>
+<tr>
+<td>Czujnik szczelinowy 1</td>
+<td>D0</td>
+<td align="left">2</td>
+</tr>
+<tr>
+<td>Czujnik szczelinowy 2</td>
+<td>D0</td>
+<td align="left">3</td>
+</tr>
+</tbody>
+</table><p>Dodatkowo, każdy z modułów powinien mieć wyjścia GND i VCC, które można podłączyć do płytki Arduino lub innego źródła zasilania. W przypadku tego projektu wszystkie moduły (z wyłączeniem modułu HC05) zasilane były z baterii.</p>
+<p><img src="img1.JPG" alt=""><br>
+<img src="img2.JPG" alt=""></p>
+<h2 id="sposób-działania">3. Sposób działania</h2>
+<p>W kodzie znajduje się kilka obiektów, które są ważne z punktu widzenia programu. Ich definicje znajdują się poniżej:</p>
+<pre class=" language-c"><code class="prism ++ language-c">SoftwareSerial <span class="token function">BTSerial</span><span class="token punctuation">(</span><span class="token number">10</span><span class="token punctuation">,</span> <span class="token number">9</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+Servo serwo<span class="token punctuation">;</span>
+Wheels w<span class="token punctuation">;</span>
+
+<span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>
+
+<span class="token comment">//setup()</span>
+  BTSerial<span class="token punctuation">.</span><span class="token function">begin</span><span class="token punctuation">(</span><span class="token number">9600</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+  serwo<span class="token punctuation">.</span><span class="token function">attach</span><span class="token punctuation">(</span>SERVO<span class="token punctuation">)</span><span class="token punctuation">;</span>  
+  w<span class="token punctuation">.</span><span class="token function">setSpeed</span><span class="token punctuation">(</span>SPEED<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+<p>Samochód porusza się i zlicza ilość przerwań wywołanych przez czujniki szczelinowe za pomocą rozszerzonej o następujący fragment biblioteki <code>Wheels</code>:</p>
+<pre class=" language-c"><code class="prism ++ language-c"><span class="token keyword">void</span> <span class="token function">cntplus</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+  cnt<span class="token operator">++</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+
+Wheels<span class="token punctuation">:</span><span class="token punctuation">:</span><span class="token function">Wheels</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+  <span class="token function">pinMode</span><span class="token punctuation">(</span><span class="token number">2</span><span class="token punctuation">,</span> INPUT<span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token function">pinMode</span><span class="token punctuation">(</span><span class="token number">3</span><span class="token punctuation">,</span> INPUT<span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token function">attachInterrupt</span><span class="token punctuation">(</span><span class="token function">digitalPinToInterrupt</span><span class="token punctuation">(</span><span class="token number">2</span><span class="token punctuation">)</span><span class="token punctuation">,</span> cntplus<span class="token punctuation">,</span> CHANGE<span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token function">attachInterrupt</span><span class="token punctuation">(</span><span class="token function">digitalPinToInterrupt</span><span class="token punctuation">(</span><span class="token number">3</span><span class="token punctuation">)</span><span class="token punctuation">,</span> cntplus<span class="token punctuation">,</span> CHANGE<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<p>Samochód porusza się w linii prostej, więc suma ilości przerwań dobrze ilustruje pokonaną przez niego drogę.</p>
+<p>Korzystając z delikatnie zmodyfikowanej funkcji <code>lookAndTellDistance</code> możemy sprawdzać w jakiej odległości od samochodu (w mm) znajduje się przeszkoda.</p>
+<pre class=" language-c"><code class="prism ++ language-c"><span class="token keyword">int</span> <span class="token function">lookAndTellDistance</span><span class="token punctuation">(</span>byte angle<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+  <span class="token keyword">unsigned</span> <span class="token keyword">long</span> tot<span class="token punctuation">;</span>
+  <span class="token keyword">unsigned</span> <span class="token keyword">int</span> distance<span class="token punctuation">;</span>
+  
+  serwo<span class="token punctuation">.</span><span class="token function">write</span><span class="token punctuation">(</span>angle<span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token function">delay</span><span class="token punctuation">(</span><span class="token number">300</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+  <span class="token function">digitalWrite</span><span class="token punctuation">(</span>TRIG<span class="token punctuation">,</span> HIGH<span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token function">delay</span><span class="token punctuation">(</span><span class="token number">10</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token function">digitalWrite</span><span class="token punctuation">(</span>TRIG<span class="token punctuation">,</span> LOW<span class="token punctuation">)</span><span class="token punctuation">;</span>
+  tot <span class="token operator">=</span> <span class="token function">pulseIn</span><span class="token punctuation">(</span>ECHO<span class="token punctuation">,</span> HIGH<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+  distance <span class="token operator">=</span> <span class="token number">10</span> <span class="token operator">*</span> <span class="token punctuation">(</span>tot <span class="token operator">/</span> <span class="token number">58</span><span class="token punctuation">)</span><span class="token punctuation">;</span> 
+  Serial<span class="token punctuation">.</span><span class="token function">write</span><span class="token punctuation">(</span>distance<span class="token punctuation">)</span><span class="token punctuation">;</span> 
+  <span class="token keyword">return</span> distance<span class="token punctuation">;</span> <span class="token comment">//mm</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<p>Poniższy fragment to de facto serce całego programu, fragment który sprawia że wszystko razem działa. Kod składa się z dwóch bloków, które odpowiadają za patrzenie na lewo i na prawo. W zasadzie kod tłumaczy się sam. Na początku auto zatrzymuje się i patrzy w lewo. Jeśli przeszkoda jest dalej niż 4m (co prawdopodobnie jest błędem pomiaru), autko podjeżdża minimalnie do przodu i jednokrotnie powtarza pomiar. Następnie odpowiednia informacja jest wysyłana w umówionym formacie przez moduł bluetooth. Zawarte są tam 3 informacje: Strona; zmierzony w mm dystans;  wartość licznika przerwań (de facto pokonany dystans w momencie pomiaru), przykładowo <code>&lt;L;420;2137&gt;</code>.<br>
+Przy obrocie sonaru sprawdzane są jeszcze 3 kąty z przodu. Jeśli auto jest blisko przeszkody, kończy swoją pracę.</p>
+<pre class=" language-c"><code class="prism ++ language-c"><span class="token keyword">void</span> <span class="token function">loop</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    w<span class="token punctuation">.</span><span class="token function">stop</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">int</span> distanceLeft <span class="token operator">=</span> <span class="token function">lookAndTellDistance</span><span class="token punctuation">(</span>LEFT<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">if</span><span class="token punctuation">(</span>distanceLeft <span class="token operator">&gt;</span> MAX<span class="token punctuation">)</span><span class="token punctuation">{</span> <span class="token comment">//repeat if over limit</span>
+      w<span class="token punctuation">.</span><span class="token function">forward</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+      <span class="token function">delay</span><span class="token punctuation">(</span>SMALLSTEP<span class="token punctuation">)</span><span class="token punctuation">;</span>
+      w<span class="token punctuation">.</span><span class="token function">stop</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+      <span class="token keyword">int</span> distanceLeft <span class="token operator">=</span> <span class="token function">lookAndTellDistance</span><span class="token punctuation">(</span>LEFT<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+    BTSerial<span class="token punctuation">.</span><span class="token function">print</span><span class="token punctuation">(</span><span class="token string">"&lt;L;"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    BTSerial<span class="token punctuation">.</span><span class="token function">print</span><span class="token punctuation">(</span>distanceLeft<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    BTSerial<span class="token punctuation">.</span><span class="token function">print</span><span class="token punctuation">(</span><span class="token string">";"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    BTSerial<span class="token punctuation">.</span><span class="token function">print</span><span class="token punctuation">(</span>w<span class="token punctuation">.</span>cntr<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    BTSerial<span class="token punctuation">.</span><span class="token function">print</span><span class="token punctuation">(</span><span class="token string">"&gt;"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token function">lookAndTellDistance</span><span class="token punctuation">(</span>FRONT<span class="token operator">+</span>DEGS<span class="token punctuation">)</span> <span class="token operator">&lt;=</span> TOL <span class="token operator">||</span> <span class="token function">lookAndTellDistance</span><span class="token punctuation">(</span>FRONT<span class="token punctuation">)</span> <span class="token operator">&lt;=</span> TOL <span class="token operator">||</span> 
+    <span class="token function">lookAndTellDistance</span><span class="token punctuation">(</span>FRONT<span class="token operator">-</span>DEGS<span class="token punctuation">)</span> <span class="token operator">&lt;=</span> TOL<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+      w<span class="token punctuation">.</span><span class="token function">stop</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+      <span class="token function">exit</span><span class="token punctuation">(</span><span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    w<span class="token punctuation">.</span><span class="token function">stop</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">int</span> distanceRight <span class="token operator">=</span> <span class="token function">lookAndTellDistance</span><span class="token punctuation">(</span>RIGHT<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">if</span><span class="token punctuation">(</span>distanceRight <span class="token operator">&gt;</span> MAX<span class="token punctuation">)</span><span class="token punctuation">{</span> <span class="token comment">//repeat if over limit</span>
+      w<span class="token punctuation">.</span><span class="token function">forward</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+      <span class="token function">delay</span><span class="token punctuation">(</span>SMALLSTEP<span class="token punctuation">)</span><span class="token punctuation">;</span>
+      w<span class="token punctuation">.</span><span class="token function">stop</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+      <span class="token keyword">int</span> distanceRight <span class="token operator">=</span> <span class="token function">lookAndTellDistance</span><span class="token punctuation">(</span>RIGHT<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+    BTSerial<span class="token punctuation">.</span><span class="token function">print</span><span class="token punctuation">(</span><span class="token string">"&lt;R;"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    BTSerial<span class="token punctuation">.</span><span class="token function">print</span><span class="token punctuation">(</span>distanceRight<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    BTSerial<span class="token punctuation">.</span><span class="token function">print</span><span class="token punctuation">(</span><span class="token string">";"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    BTSerial<span class="token punctuation">.</span><span class="token function">print</span><span class="token punctuation">(</span>w<span class="token punctuation">.</span>cntr<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    BTSerial<span class="token punctuation">.</span><span class="token function">print</span><span class="token punctuation">(</span><span class="token string">"&gt;"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token function">lookAndTellDistance</span><span class="token punctuation">(</span>FRONT<span class="token operator">-</span>DEGS<span class="token punctuation">)</span> <span class="token operator">&lt;=</span> TOL <span class="token operator">||</span> <span class="token function">lookAndTellDistance</span><span class="token punctuation">(</span>FRONT<span class="token punctuation">)</span> <span class="token operator">&lt;=</span> TOL <span class="token operator">||</span> 
+    <span class="token function">lookAndTellDistance</span><span class="token punctuation">(</span>FRONT<span class="token operator">+</span>DEGS<span class="token punctuation">)</span> <span class="token operator">&lt;=</span> TOL<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+      w<span class="token punctuation">.</span><span class="token function">stop</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+      <span class="token function">exit</span><span class="token punctuation">(</span><span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    w<span class="token punctuation">.</span><span class="token function">forward</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token function">delay</span><span class="token punctuation">(</span><span class="token number">100</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<h4 id="dodatkowe-informacje">Dodatkowe informacje</h4>
+<p>W powyższych fragmentach kodu wykorzystanych jest wiele stałych, zatem poniżej wrzucam blok z definicjami</p>
+<pre class=" language-c"><code class="prism ++ language-c"><span class="token comment">// constants</span>
+<span class="token macro property">#<span class="token directive keyword">define</span> SPEED 150</span>
+<span class="token macro property">#<span class="token directive keyword">define</span> LEFT 180</span>
+<span class="token macro property">#<span class="token directive keyword">define</span> RIGHT 0</span>
+<span class="token macro property">#<span class="token directive keyword">define</span> FRONT 90</span>
+<span class="token macro property">#<span class="token directive keyword">define</span> TOL 200</span>
+<span class="token macro property">#<span class="token directive keyword">define</span> DEGS 20</span>
+<span class="token macro property">#<span class="token directive keyword">define</span> MAX 4000</span>
+<span class="token macro property">#<span class="token directive keyword">define</span> SMALLSTEP 25</span>
+<span class="token comment">// piny dla sonaru (HC-SR04)</span>
+<span class="token macro property">#<span class="token directive keyword">define</span> TRIG A4</span>
+<span class="token macro property">#<span class="token directive keyword">define</span> ECHO A5</span>
+
+<span class="token comment">// pin kontroli serwo (musi być PWM)</span>
+<span class="token macro property">#<span class="token directive keyword">define</span> SERVO 5</span>
+</code></pre>
+<h2 id="prezentacja">4. Prezentacja</h2>
+
+  <p> <video width="100%" height="auto" controls>
+  <source src="film1.mp4" type="video/mp4">
+
+  </video> </p>
+
+
+  <p> <iframe width="100%" height="420px"
+    src="https://www.youtube.com/embed/0JrH47XQIFE">
+    </iframe> </p>
+</div>
+</body>
+
+</html>

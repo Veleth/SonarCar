@@ -1,12 +1,10 @@
 //#include <Arduino.h>
 //#include "TimerOne.h"
 #include "Wheels.h"
-#define INTINPUT0 A0
-#define INTINPUT1 A1
 
 #define SET_MOVEMENT(side,f,b) digitalWrite( side[0], f);\
                                digitalWrite( side[1], b)
-long cnt;
+long long cnt;
 int period = 5000;
 int speedLeft = 0;
 int signLeft = 1;
@@ -14,16 +12,19 @@ int speedRight = 0;
 int signRight = 1;
 
 
+void cntplus(){
+  cnt++;
+}
 
 
 Wheels::Wheels() 
 {
   cnt = 0;
-  pinMode(INTINPUT0, INPUT);
-  pinMode(INTINPUT1, INPUT);
-  PCICR  = 0x02;
-  PCMSK1 = 0x03;
-  attachInterrupt(digitalPinToInterrupt(3), cnt++, CHANGE); //TODO:Check
+  pinMode(2, INPUT);
+  pinMode(3, INPUT);
+  attachInterrupt(digitalPinToInterrupt(2), cntplus, CHANGE); //TODO:Check
+  attachInterrupt(digitalPinToInterrupt(3), cntplus, CHANGE); //TODO:Check
+
  }
 
 void zeroCounters(){
@@ -131,11 +132,11 @@ void Wheels::stop()
 }
 
 void Wheels::goForward(int cm){
+    int ocnt = cnt;
     this->setSpeed(150);
     this->forward();
-    while (cnt < 8*cm) delay(50);
+    while (cnt-ocnt < 4*cm) delay(50);
     this->stop();
-    zeroCounters();
 }
 
 void Wheels::goBack(int cm){
